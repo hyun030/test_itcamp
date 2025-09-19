@@ -1,284 +1,409 @@
-import streamlit as st
-
-# --- 페이지 설정 ---
-st.set_page_config(
-    page_title="삼성전자 맞춤 포트폴리오",
-    page_icon="🔷",
-    layout="wide"
-)
-
-# --- CSS 파일 로드 ---
-def local_css(file_name):
-    # 'styles.css' 파일이 app.py와 같은 경로에 있는지 확인하세요.
-    try:
-        with open(file_name, 'r', encoding='utf-8') as f:
-            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-    except FileNotFoundError:
-        st.error(f"'{file_name}' 파일을 찾을 수 없습니다. app.py와 동일한 폴더에 있는지 확인해주세요.")
-
-
-local_css("styles.css")
-
-# --- 세션 상태 초기화 (자기소개서 편집 기능용) ---
-if 'editing_profile' not in st.session_state:
-    st.session_state.editing_profile = False
-if 'profile_summary' not in st.session_state:
-    st.session_state.profile_summary = "'AI 연구팀' 직무에 대한 깊은 이해와 LLM, PyTorch 역량을 바탕으로..."
-
-# --- 헤더 ---
-# st.columns와 st.markdown을 사용하여 원본과 유사하게 구성
-col1, col2 = st.columns([2, 3])
-with col1:
-    st.markdown("""
-    <div class="header-left">
-        <div class="logo-section">
-            <div class="logo"><span>S</span></div>
-            <span class="company-name">삼성전자</span>
-        </div>
-        <span class="badge badge-secondary">AI 채용 플랫폼</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.markdown("""
-    <div class="custom-nav">
-        <a href="#" class="nav-link">포트폴리오</a>
-        <a href="#" class="nav-link">채용정보</a>
-        <a href="#" class="nav-link">지원하기</a>
-        <button class="btn btn-outline" style="margin-left: 1rem;">로그인</button>
-    </div>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitFolio - AI 포트폴리오 프로토타입</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-    .custom-nav { display: flex; justify-content: flex-end; align-items: center; height: 4rem; }
-    .custom-nav .nav-link { margin: 0 0.75rem; color: #6b7280; text-decoration: none; }
-    .custom-nav .nav-link:hover { color: #1f2937; }
-    /* 모바일 화면 대응 */
-    @media (max-width: 768px) {
-        .custom-nav { display: none; }
-    }
+        /* --- 기본 및 레이아웃 스타일 (기존과 유사) --- */
+        :root {
+            --primary-color: #5A67D8; /* 차분한 보라/파랑 계열 */
+            --primary-hover: #434190;
+            --secondary-color: #F7FAFC;
+            --text-color: #2D3748;
+            --subtext-color: #718096;
+            --border-color: #E2E8F0;
+            --highlight-bg: #E9D8FD;
+            --highlight-text: #5A67D8;
+            --green-light: #C6F6D5;
+            --green-dark: #38A169;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .page { display: none; animation: fadeIn 0.5s ease-in-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* --- 공용 컴포넌트 (기존과 유사) --- */
+        .btn {
+            display: inline-block; background-color: var(--primary-color); color: white;
+            padding: 0.8rem 1.8rem; border: none; border-radius: 8px; font-size: 1rem;
+            font-weight: 700; cursor: pointer; text-decoration: none; transition: all 0.2s ease;
+        }
+        .btn:hover { background-color: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .btn:disabled { background-color: #A0AEC0; cursor: not-allowed; transform: none; box-shadow: none; }
+        .card {
+            background: white; border-radius: 12px; padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+        }
+        h1, h2, h3, h4 { font-weight: 900; letter-spacing: -0.5px; }
+        .page-description { text-align: center; color: var(--subtext-color); margin-bottom: 2.5rem; }
+        .text-center { text-align: center; }
+
+        /* --- 1. 랜딩 페이지 --- */
+        #landing-page { text-align: center; padding: 4rem 1rem; }
+        #landing-page h1 { font-size: 3rem; margin-bottom: 1rem; }
+        #landing-page .highlight { color: var(--primary-color); }
+        #landing-page p { font-size: 1.2rem; color: var(--subtext-color); max-width: 600px; margin: 0 auto 2rem; }
+
+        /* --- 2. 데이터 연동 페이지 (수정됨) --- */
+        #connect-page h2 { font-size: 2rem; text-align: center; margin-bottom: 2.5rem; }
+        .connect-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;
+        }
+        .connect-card {
+            display: flex; align-items: center; padding: 1.5rem; border: 1px solid var(--border-color);
+            border-radius: 10px; transition: all 0.2s ease; background-color: white;
+        }
+        .connect-card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .connect-card .icon { width: 40px; height: 40px; margin-right: 1.5rem; }
+        .connect-card .info h3 { font-size: 1.2rem; margin-bottom: 0.2rem; }
+        .connect-card .info p { color: var(--subtext-color); font-size: 0.9rem; }
+        .connect-btn {
+            margin-left: auto; padding: 0.5rem 1rem; font-size: 0.9rem; background-color: #F0F4F8;
+            color: var(--text-color); border: 1px solid var(--border-color); white-space: nowrap;
+        }
+        .connect-btn.connected {
+            background-color: var(--green-light); color: var(--green-dark);
+            border-color: var(--green-dark); cursor: default;
+        }
+
+        /* --- 3. 맞춤화 입력 페이지 --- */
+        #input-page h2 { text-align: center; font-size: 2rem; margin-bottom: 2rem; }
+        .input-form { max-width: 500px; margin: 0 auto; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; font-weight: 700; margin-bottom: 0.5rem; }
+        .form-group input {
+            width: 100%; padding: 0.8rem; border: 1px solid var(--border-color);
+            border-radius: 8px; font-size: 1rem;
+        }
+        .input-form .btn { width: 100%; }
+
+        /* --- 4. AI 분석 페이지 (수정됨) --- */
+        #analysis-page {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh;
+        }
+        .spinner {
+            width: 60px; height: 60px; border: 6px solid var(--border-color);
+            border-top-color: var(--primary-color); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 2rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #analysis-text { font-size: 1.1rem; font-weight: 500; color: var(--subtext-color); transition: opacity 0.3s; }
+
+        /* --- 5. 결과 페이지 (수정됨) --- */
+        #result-page header { text-align: center; margin-bottom: 3rem; }
+        #result-page header h2 { font-size: 2.5rem; }
+        #result-page header .company-name { color: var(--primary-color); }
+        .portfolio-section h3 {
+            font-size: 1.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color); display: flex; align-items: center;
+        }
+        .portfolio-section h3 .icon-emoji { margin-right: 0.75rem; }
+        
+        #ai-summary-card { background-color: #F0F4FF; border-left: 4px solid var(--primary-color); }
+        #ai-summary-card h3 { border: none; }
+        #ai-summary-card p { font-size: 1.1rem; }
+
+        .skills-grid { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+        .skill-tag {
+            padding: 0.5rem 1rem; border-radius: 20px;
+            background-color: var(--secondary-color); font-weight: 500;
+        }
+        .skill-tag.highlighted {
+            background-color: var(--highlight-bg); color: var(--highlight-text); font-weight: 700;
+        }
+
+        .project-card { border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; }
+        .project-card h4 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+        .project-card .description { color: var(--subtext-color); }
+        .project-card .ai-rewrite {
+            margin-top: 1.5rem; padding: 1rem; background-color: #F0FFF4;
+            border-left: 4px solid var(--green-dark); border-radius: 4px;
+        }
+        .ai-rewrite .rewrite-header { display: flex; align-items: center; font-weight: 700; color: var(--green-dark); margin-bottom: 0.5rem; }
+        .ai-rewrite .rewrite-header span { margin-left: 0.5rem; }
+
     </style>
-    """, unsafe_allow_html=True)
+</head>
+<body>
 
-
-# --- Hero 섹션 ---
-st.markdown("""
-<section class="hero" style="padding: 2rem 0;">
-    <div class="hero-background">
-        <img src="https://images.unsplash.com/photo-1623715537851-8bc15aa8c145?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB0ZWNobm9sb2d5JTIwb2ZmaWNlJTIwd29ya3NwYWNlfGVufDF8fHx8MTc1NzkxNDMxMXww&ixlib=rb-4.0&q=80&w=1080&utm_source=figma&utm_medium=referral" alt="Modern workspace">
-    </div>
     <div class="container">
-        <div class="hero-content">
-            <div class="hero-badge-section">
-                <svg class="sparkles-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 12 2 2 4-4"/><path d="M21 12c.552 0 1.447-.167 2-1 0-.552-.167-1.447-1-2-.552 0-1.447.167-2 1 0 .552.167 1.447 1 2z"/><path d="M9 12c.552 0 1.447-.167 2-1 0-.552-.167-1.447-1-2-.552 0-1.447.167-2 1 0 .552.167 1.447 1 2z"/></svg>
-                <span class="badge badge-ai">AI 기반 맞춤형 분석</span>
-            </div>
-            <h1 class="hero-title">삼성전자 맞춤 포트폴리오</h1>
-            <p class="hero-description">
-                시각 <span class="highlight">'AI 연구팀'</span> 직무에 맞춘 제7성할 질문입니다.<br>
-                AI가 분석한 맞춤형 포트폴리오로 성공적인 지원을 준비하세요.
-            </p>
+
+        <div id="landing-page" class="page active">
+            <h1>당신의 커리어, <span class="highlight">AI가 맞춤 설계</span>합니다.</h1>
+            <p>FitFolio는 흩어진 당신의 경험을 모아 지원하는 기업에 맞춰 포트폴리오를 자동으로 재구성해주는 가장 스마트한 방법입니다.</p>
+            <button id="start-btn" class="btn">내 포트폴리오 만들기</button>
         </div>
-    </div>
-</section>
-""", unsafe_allow_html=True)
 
-
-# --- 탭 네비게이션 (Streamlit 기능으로 대체) ---
-tab1, tab2, tab3 = st.tabs([
-    "📊 AI 분석 학습",
-    "🎯 핵심 역량",
-    "📁 포트폴리오 준비"
-])
-
-# --- 탭 1: AI 분석 학습 ---
-with tab1:
-    col1, col2 = st.columns(2)
-
-    # 분석 카드 (왼쪽)
-    with col1:
-        st.markdown("""
-        <div class="card analysis-card">
-            <div class="card-header">
-                <div class="card-header-top">
-                    <svg class="brain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/></svg>
-                    <span class="badge badge-completed">AI 분석 완료</span>
-                </div>
-                <h2 class="card-title">AI 기반 분석 및 전략 제안</h2>
-                <p class="card-description">
-                    AI가 분석한 '삼성전자'의 최고 역량 기준에 '초기 AI', 'LLM 전문성', 'HBM 반도체'입니다.
-                    따라서 'AI 연구팀' 직무에서는 관련 기술 경험과 반도체 산업에 대한 이해도를 함께 어필하는 것이 중요합니다.
-                </p>
-            </div>
-            <div class="card-content">
-                <div class="skills-grid">
-                    <div class="skill-item"><h4>LLM 전문성</h4><p>대규모 언어모델 연구 경험</p></div>
-                    <div class="skill-item"><h4>HBM 반도체</h4><p>고대역폭 메모리 기술 이해</p></div>
-                    <div class="skill-item"><h4>초기 AI</h4><p>AI 기술 연구개발 역량</p></div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("상세 분석 보기", use_container_width=True, type="primary"):
-            st.toast("상세 분석 페이지로 이동합니다.")
-
-    # 프로필 요약 카드 (오른쪽)
-    with col2:
-        with st.container(border=False):
-             st.markdown("""
-             <div class="card profile-card" style="margin-bottom: 0;">
-                <div class="card-header">
-                    <div class="card-header-actions">
-                        <div class="card-header-top">
-                            <span class="badge badge-auto">자동 생성됨</span>
-                        </div>
+        <div id="connect-page" class="page">
+            <h2>1. 데이터 연동하기</h2>
+            <div class="connect-grid">
+                <div class="connect-card">
+                    <img src="https://simpleicons.org/icons/github.svg" class="icon" alt="GitHub Icon">
+                    <div class="info">
+                        <h3>GitHub</h3>
+                        <p>프로젝트와 코드를 가져옵니다.</p>
                     </div>
-                    <h2 class="card-title">AI 자기소개서 초안</h2>
-                    <p class="card-description">AI가 생성한 맞춤형 자기소개서 초안입니다. 필요에 따라 수정하여 사용하세요.</p>
+                    <button class="btn connect-btn" data-platform="github">연동하기</button>
                 </div>
-             """, unsafe_allow_html=True)
-
-             # 편집 로직
-             if st.session_state.editing_profile:
-                 edited_text = st.text_area(
-                     "자기소개서 수정:",
-                     value=st.session_state.profile_summary,
-                     height=150,
-                     label_visibility="collapsed"
-                 )
-
-                 save_col, cancel_col = st.columns(2)
-                 if save_col.button("저장", use_container_width=True, type="primary"):
-                     st.session_state.profile_summary = edited_text
-                     st.session_state.editing_profile = False
-                     st.rerun()
-                 if cancel_col.button("취소", use_container_width=True):
-                     st.session_state.editing_profile = False
-                     st.rerun()
-
-             else:
-                 st.markdown(f"""
-                 <div class="profile-content"><p>{st.session_state.profile_summary}</p></div>
-                 """, unsafe_allow_html=True)
-
-                 edit_col, download_col = st.columns(2)
-                 if edit_col.button("✏️ 편집", use_container_width=True):
-                     st.session_state.editing_profile = True
-                     st.rerun()
-
-                 download_col.download_button(
-                     label="📄 다운로드",
-                     data=st.session_state.profile_summary,
-                     file_name="profile_summary.txt",
-                     mime="text/plain",
-                     use_container_width=True
-                 )
-
-             st.markdown("""
-                <div class="tags" style="margin-top: 1rem;">
-                    <span class="tag">AI 연구</span><span class="tag">LLM</span>
-                    <span class="tag">PyTorch</span><span class="tag">반도체</span>
+                 <div class="connect-card">
+                    <img src="https://simpleicons.org/icons/linkedin.svg" class="icon" alt="LinkedIn Icon">
+                    <div class="info">
+                        <h3>LinkedIn</h3>
+                        <p>경력과 학력을 가져옵니다.</p>
+                    </div>
+                    <button class="btn connect-btn" data-platform="linkedin">연동하기</button>
+                </div>
+                 <div class="connect-card">
+                    <img src="https://simpleicons.org/icons/tistory.svg" class="icon" alt="Blog Icon">
+                    <div class="info">
+                        <h3>블로그 (Tistory)</h3>
+                        <p>작성한 글과 전문성을 가져옵니다.</p>
+                    </div>
+                    <button class="btn connect-btn" data-platform="blog">연동하기</button>
+                </div>
+                 <div class="connect-card">
+                    <img src="https://simpleicons.org/icons/behance.svg" class="icon" alt="Behance Icon">
+                    <div class="info">
+                        <h3>Behance</h3>
+                        <p>디자인 작업물을 가져옵니다.</p>
+                    </div>
+                    <button class="btn connect-btn" data-platform="behance">연동하기</button>
                 </div>
             </div>
-             """, unsafe_allow_html=True)
-
-# --- 탭 2: 핵심 역량 ---
-with tab2:
-    st.markdown("""
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">⭐ 핵심 역량 분석</h2>
-            <p class="card-description">AI 연구팀 직무에 필요한 핵심 기술과 현재 수준을 평가했습니다.</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    skills = {
-        "Python/PyTorch": 90, "Large Language Models": 85, "반도체 기술 이해": 70,
-        "머신러닝 알고리즘": 80, "데이터 분석": 75, "논문 작성": 65
-    }
-
-    for skill, level in skills.items():
-        st.write(f"**{skill}**")
-        st.progress(level, text=f"{level}%")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">관련 경험 및 프로젝트</h2>
-            <p class="card-description">직무와 연관된 경험들의 완성도와 관련성을 확인하세요.</p>
-        </div>
-        <div class="card-content">
-            <div class="experience-list">
-                <div class="experience-item">
-                    <div class="experience-info"><span class="experience-status">✅</span><span class="experience-title">AI 모델 최적화 프로젝트</span></div>
-                    <div class="experience-badges"><span class="badge badge-success">관련성 높음</span><span class="badge badge-secondary">완료</span></div>
-                </div>
-                <div class="experience-item">
-                    <div class="experience-info"><span class="experience-status">✅</span><span class="experience-title">LLM 파인튜닝 경험</span></div>
-                    <div class="experience-badges"><span class="badge badge-success">관련성 높음</span><span class="badge badge-secondary">완료</span></div>
-                </div>
-                <div class="experience-item">
-                    <div class="experience-info"><span class="experience-status">🔄</span><span class="experience-title">반도체 관련 연구</span></div>
-                    <div class="experience-badges"><span class="badge badge-warning">관련성 보통</span><span class="badge badge-secondary">진행중</span></div>
-                </div>
+            <div class="text-center" style="margin-top: 3rem;">
+                <button id="next-to-input-btn" class="btn" disabled>다음 단계로</button>
             </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
 
-
-# --- 탭 3: 포트폴리오 준비 ---
-with tab3:
-    st.markdown("""
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">📁 포트폴리오 현황</h2>
-            <p class="card-description">현재 포트폴리오 자료의 완성도를 확인하고 부족한 부분을 보완하세요.</p>
-        </div>
-        <div class="card-content">
-            <div class="portfolio-list">
-                 <div class="portfolio-item">
-                    <div class="portfolio-info"><span class="portfolio-icon">📄</span><div class="portfolio-details"><h4>AI 모델 성능 최적화 보고서</h4><p>PyTorch를 활용한 LLM 최적화 프로젝트 결과</p></div></div>
-                    <div class="portfolio-actions"><span class="badge badge-success">완료</span></div>
+        <div id="input-page" class="page">
+            <h2>2. 포트폴리오 맞춤화</h2>
+            <div class="input-form card">
+                <div class="form-group">
+                    <label for="company-name">지원 회사명</label>
+                    <input type="text" id="company-name" placeholder="예: 삼성전자">
                 </div>
-                <div class="portfolio-item">
-                    <div class="portfolio-info"><span class="portfolio-icon">💻</span><div class="portfolio-details"><h4>GitHub 리포지토리</h4><p>오픈소스 기여 및 개인 프로젝트</p></div></div>
-                    <div class="portfolio-actions"><span class="badge badge-warning">업데이트 필요</span></div>
+                 <div class="form-group">
+                    <label for="job-title">지원 직무</label>
+                    <input type="text" id="job-title" placeholder="예: AI 연구원">
                 </div>
+                <button id="generate-btn" class="btn">AI 맞춤 포트폴리오 생성</button>
             </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
 
-    # Streamlit 파일 업로더로 기능 대체
-    with st.container(border=False):
-        st.markdown("""
-        <div class="card upload-card">
-            <div class="card-header">
-                <h2 class="card-title">📤 자료 업로드</h2>
-                <p class="card-description">기존 자료를 업로드하여 AI 분석을 받아보세요.</p>
+        <div id="analysis-page" class="page">
+            <div class="spinner"></div>
+            <h2 id="analysis-text">AI가 포트폴리오를 분석하고 있습니다...</h2>
+        </div>
+
+        <div id="result-page" class="page">
+            <header>
+                <h2><span id="result-company-name" class="company-name"></span> 맞춤 포트폴리오</h2>
+                <p>FitFolio의 AI가 <strong id="result-job-title"></strong> 직무에 맞춰 재구성한 결과입니다.</p>
+            </header>
+            
+            <section id="ai-summary-card" class="portfolio-section card">
+                <h3><span class="icon-emoji">💡</span>AI 분석 요약</h3>
+                <p id="ai-summary"></p>
+            </section>
+
+             <section class="portfolio-section card">
+                <h3><span class="icon-emoji">🎯</span>핵심 역량 (Skills)</h3>
+                <div class="skills-grid" id="skills-container">
+                    </div>
+            </section>
+
+            <section class="portfolio-section card">
+                <h3><span class="icon-emoji">🚀</span>프로젝트 재구성 (Projects)</h3>
+                <div id="projects-container">
+                    </div>
+            </section>
+            
+            <div class="text-center" style="margin-top: 2rem;">
+                <button class="btn">PDF로 다운로드</button>
             </div>
         </div>
-        """, unsafe_allow_html=True)
-        uploaded_files = st.file_uploader(
-            "파일을 드래그하거나 클릭하여 업로드 (PDF, DOCX, PPTX, PNG, JPG)",
-            type=['pdf', 'docx', 'pptx', 'png', 'jpg', 'jpeg'],
-            accept_multiple_files=True,
-            label_visibility="collapsed"
-        )
-        if uploaded_files:
-            st.success(f"{len(uploaded_files)}개의 파일이 성공적으로 업로드되었습니다!")
-            for file in uploaded_files:
-                st.write(f"- {file.name} ({round(file.size / 1024, 2)} KB)")
 
-# --- 푸터 ---
-st.markdown("""
-<footer class="footer">
-    <div class="container">
-        <div class="footer-content">
-            <p>&copy; 2024 삼성전자. AI 기반 채용 플랫폼</p>
-        </div>
     </div>
-</footer>
-""", unsafe_allow_html=True)
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM 요소 ---
+            const pages = document.querySelectorAll('.page');
+            const startBtn = document.getElementById('start-btn');
+            const connectBtns = document.querySelectorAll('.connect-btn');
+            const nextToInputBtn = document.getElementById('next-to-input-btn');
+            const generateBtn = document.getElementById('generate-btn');
+            const companyInput = document.getElementById('company-name');
+            const jobInput = document.getElementById('job-title');
+            const analysisText = document.getElementById('analysis-text');
+
+            // --- 상태 변수 ---
+            let connectedPlatforms = new Set();
+
+            // --- 더미 데이터 (시뮬레이션용) ---
+            const userProfile = {
+                skills: ['Python', 'PyTorch', 'TensorFlow', 'LLM', 'On-Device AI', 'React', 'Data Analysis'],
+                projects: [
+                    {
+                        title: '모바일 기기용 이미지 분류 모델 경량화',
+                        description: 'TensorFlow Lite를 사용하여 CNN 모델의 크기를 줄이고, 모바일 환경에서의 추론 속도를 30% 개선한 프로젝트입니다.',
+                        relatedSkills: ['Python', 'TensorFlow', 'On-Device AI']
+                    },
+                    {
+                        title: '소셜 미디어 감성 분석 모델',
+                        description: 'LSTM 기반의 딥러닝 모델을 사용하여 소셜 미디어 텍스트의 긍정/부정을 분류하는 프로젝트를 진행했습니다. 데이터 전처리부터 모델 학습, 평가까지 전 과정을 담당했습니다.',
+                        relatedSkills: ['Python', 'PyTorch', 'LLM']
+                    },
+                ]
+            };
+
+            // --- 함수 ---
+
+            // 페이지 전환 함수
+            function showPage(pageId) {
+                pages.forEach(page => page.classList.remove('active'));
+                document.getElementById(pageId).classList.add('active');
+            }
+
+            // '다음 단계' 버튼 상태 업데이트
+            function updateConnectState() {
+                if (connectedPlatforms.size > 0) {
+                    nextToInputBtn.disabled = false;
+                } else {
+                    nextToInputBtn.disabled = true;
+                }
+            }
+            
+            // AI 분석 시뮬레이션 함수
+            function startAnalysisSimulation(company, job) {
+                showPage('analysis-page');
+                const messages = [
+                    `'${company}'의 최신 기술 블로그를 분석 중입니다...`,
+                    "채용 공고의 핵심 요구 역량을 추출하고 있습니다...",
+                    `'${job}' 직무와 회원님의 경험 데이터 매칭 중...`,
+                    "프로젝트 설명을 AI가 재구성하는 중...",
+                    "맞춤 포트폴리오 생성 완료!"
+                ];
+                let messageIndex = 0;
+                analysisText.textContent = messages[messageIndex];
+                
+                const interval = setInterval(() => {
+                    messageIndex++;
+                    if (messageIndex < messages.length) {
+                        analysisText.style.opacity = '0';
+                        setTimeout(() => {
+                            analysisText.textContent = messages[messageIndex];
+                            analysisText.style.opacity = '1';
+                        }, 300);
+                    } else {
+                        clearInterval(interval);
+                        renderResultPage(company, job);
+                    }
+                }, 2000); // 2초마다 메시지 변경
+            }
+
+            // 결과 페이지 렌더링 함수
+            function renderResultPage(company, job) {
+                document.getElementById('result-company-name').textContent = company;
+                document.getElementById('result-job-title').textContent = job;
+                
+                // AI 분석 요약 (시뮬레이션)
+                const aiSummary = document.getElementById('ai-summary');
+                aiSummary.innerHTML = `FitFolio AI가 분석한 '${company} ${job}' 직무의 핵심은 <strong>'LLM 경량화'</strong>와 <strong>'온디바이스 AI'</strong> 경험입니다. 회원님의 경험을 이 키워드에 맞춰 강조하고 재구성했습니다.`;
+                
+                // 스킬 렌더링 (시뮬레이션)
+                const skillsContainer = document.getElementById('skills-container');
+                skillsContainer.innerHTML = '';
+                const requiredSkills = ['On-Device AI', 'LLM', 'PyTorch']; // AI가 추출한 필수 스킬로 가정
+                userProfile.skills.forEach(skill => {
+                    const skillTag = document.createElement('div');
+                    skillTag.className = 'skill-tag';
+                    skillTag.textContent = skill;
+                    if (requiredSkills.includes(skill)) {
+                        skillTag.classList.add('highlighted');
+                    }
+                    skillsContainer.appendChild(skillTag);
+                });
+
+                // 프로젝트 렌더링 (시뮬레이션)
+                const projectsContainer = document.getElementById('projects-container');
+                projectsContainer.innerHTML = '';
+                // AI가 관련성 높은 순으로 정렬했다고 가정
+                userProfile.projects.forEach((project) => {
+                    const projectCard = document.createElement('div');
+                    projectCard.className = 'project-card';
+                    
+                    let aiRewriteHTML = '';
+                    // AI가 모든 관련 프로젝트를 재구성했다고 가정
+                    if (project.relatedSkills.some(skill => requiredSkills.includes(skill))) {
+                        aiRewriteHTML = `
+                            <div class="ai-rewrite">
+                                <div class="rewrite-header">✨<span>AI Rewrite</span></div>
+                                <p>'${company}'가 최근 집중하고 있는 <strong>'온디바이스 AI'</strong> 전략에 맞춰, <strong>TensorFlow Lite 기반 모델 경량화</strong> 경험을 강조했습니다. 이를 통해 제한된 하드웨어 환경에서의 효율적인 AI 모델 배포 및 운영 능력을 어필할 수 있습니다.</p>
+                            </div>
+                        `;
+                    }
+
+                    projectCard.innerHTML = `
+                        <h4>${project.title}</h4>
+                        <p class="description">${project.description}</p>
+                        ${aiRewriteHTML}
+                    `;
+                    projectsContainer.appendChild(projectCard);
+                });
+
+                showPage('result-page');
+            }
+
+            // --- 이벤트 리스너 ---
+
+            // 시작하기 버튼
+            startBtn.addEventListener('click', () => showPage('connect-page'));
+
+            // 플랫폼 연동 버튼
+            connectBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const platform = btn.dataset.platform;
+                    btn.textContent = '연동 완료 ✔';
+                    btn.classList.add('connected');
+                    btn.disabled = true;
+                    connectedPlatforms.add(platform);
+                    updateConnectState();
+                });
+            });
+
+            // 다음 단계로 버튼
+            nextToInputBtn.addEventListener('click', () => showPage('input-page'));
+
+            // 포트폴리오 생성 버튼
+            generateBtn.addEventListener('click', () => {
+                const company = companyInput.value.trim();
+                const job = jobInput.value.trim();
+
+                if (!company || !job) {
+                    alert('회사명과 직무를 모두 입력해주세요.');
+                    return;
+                }
+                
+                startAnalysisSimulation(company, job);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -3,295 +3,525 @@ import time
 
 # --- 페이지 설정 ---
 st.set_page_config(
-    page_title="FitFolio - AI 포트폴리오",
-    page_icon="✨",
+    page_title="FitFolio - AI 기반 맞춤형 포트폴리오",
+    page_icon="🎯",
     layout="wide"
 )
 
 # --- CSS 스타일 ---
-# 이전 코드의 CSS를 st.markdown을 사용해 문자열로 주입 (오류 해결)
 st.markdown("""
 <style>
-    /* --- 기본 및 레이아웃 스타일 --- */
-    :root {
-        --primary-color: #5A67D8;
-        --primary-hover: #434190;
-        --secondary-color: #F7FAFC;
-        --text-color: #2D3748;
-        --subtext-color: #718096;
-        --border-color: #E2E8F0;
-        --highlight-bg: #E9D8FD;
-        --highlight-text: #5A67D8;
-        --green-light: #C6F6D5;
-        --green-dark: #38A169;
-    }
-    /* Streamlit의 메인 콘텐츠 영역에 대한 스타일 조정 */
-    .main .block-container {
-        max-width: 1200px;
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-    .stButton>button {
-        width: 100%;
-        border-radius: 8px;
-        padding: 0.8rem 1.8rem;
-        font-weight: 700;
-        background-color: var(--primary-color);
-        color: white;
-        border: none;
-    }
-    .stButton>button:hover {
-        background-color: var(--primary-hover);
-        color: white;
-        border: none;
-    }
-    .stButton>button:disabled {
-        background-color: #A0AEC0;
-        cursor: not-allowed;
-    }
-    h1, h2, h3, h4 { font-weight: 900; letter-spacing: -0.5px; }
-    .text-center { text-align: center; }
+/* 전체 레이아웃 */
+.main-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
 
-    /* --- 페이지별 스타일 --- */
-    .landing-container { text-align: center; padding: 4rem 1rem; }
-    .landing-container h1 { font-size: 3rem; margin-bottom: 1rem; }
-    .landing-container .highlight { color: var(--primary-color); }
-    .landing-container p { font-size: 1.2rem; color: var(--subtext-color); max-width: 600px; margin: 0 auto 2rem; }
+/* 헤더 스타일 */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 2rem;
+}
 
-    .connect-card {
-        display: flex; align-items: center; padding: 1.5rem; border: 1px solid var(--border-color);
-        border-radius: 10px; background-color: white; margin-bottom: 1rem;
-    }
-    .connect-card .icon { width: 40px; height: 40px; margin-right: 1.5rem; }
-    .connect-card .info { flex-grow: 1; }
-    .connect-card .info h3 { font-size: 1.2rem; margin-bottom: 0.2rem; margin-top: 0; }
-    .connect-card .info p { color: var(--subtext-color); font-size: 0.9rem; margin-bottom: 0; }
-    
-    .input-form { max-width: 500px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; }
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
 
-    .spinner-container { text-align: center; padding: 5rem 0; }
-    
-    .result-header { text-align: center; margin-bottom: 3rem; }
-    .result-header h2 { font-size: 2.5rem; }
-    .result-header .company-name { color: var(--primary-color); }
+.logo {
+    width: 3rem;
+    height: 3rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.25rem;
+}
 
-    .card {
-        background: white; border-radius: 12px; padding: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        margin-bottom: 1.5rem;
-    }
-    .portfolio-section h3 {
-        font-size: 1.5rem; margin-bottom: 1rem; padding-bottom: 0.5rem;
-        border-bottom: 2px solid var(--border-color); display: flex; align-items: center;
-    }
-    .portfolio-section h3 .icon-emoji { margin-right: 0.75rem; }
-    
-    #ai-summary-card { background-color: #F0F4FF; border-left: 4px solid var(--primary-color); }
-    
-    .skills-grid { display: flex; flex-wrap: wrap; gap: 0.8rem; }
-    .skill-tag {
-        padding: 0.5rem 1rem; border-radius: 20px;
-        background-color: var(--secondary-color); font-weight: 500;
-    }
-    .skill-tag.highlighted {
-        background-color: var(--highlight-bg); color: var(--highlight-text); font-weight: 700;
-    }
-    
-    .project-card { border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; }
-    .ai-rewrite {
-        margin-top: 1.5rem; padding: 1rem; background-color: #F0FFF4;
-        border-left: 4px solid var(--green-dark); border-radius: 4px;
-    }
-    .rewrite-header { display: flex; align-items: center; font-weight: 700; color: var(--green-dark); margin-bottom: 0.5rem; }
+.brand-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1f2937;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-link {
+    color: #6b7280;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-link:hover {
+    color: #667eea;
+}
+
+/* Hero 섹션 */
+.hero {
+    text-align: center;
+    padding: 3rem 0;
+    background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+    border-radius: 1rem;
+    margin-bottom: 3rem;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: #6b7280;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.highlight {
+    color: #667eea;
+    font-weight: 600;
+}
+
+/* 입력 섹션 */
+.input-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+/* 카드 스타일 */
+.analysis-card, .profile-card, .skills-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    margin-bottom: 1rem;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.card-description {
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+/* 뱃지 */
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin: 0.25rem;
+}
+
+.badge-primary { background: #ddd6fe; color: #5b21b6; }
+.badge-success { background: #dcfce7; color: #166534; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-secondary { background: #f3f4f6; color: #6b7280; }
+
+/* 스킬 그리드 */
+.skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.skill-item {
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 0.5rem;
+    border-left: 3px solid #667eea;
+}
+
+.skill-item h4 {
+    margin: 0 0 0.5rem 0;
+    color: #1f2937;
+    font-size: 0.95rem;
+}
+
+.skill-item p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+
+/* 로딩 애니메이션 */
+.loading-animation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #667eea;
+}
+
+.spinner {
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .hero-title { font-size: 2rem; }
+    .hero-subtitle { font-size: 1rem; }
+    .nav-links { display: none; }
+}
 </style>
 """, unsafe_allow_html=True)
 
+# --- 세션 상태 초기화 ---
+if 'analysis_completed' not in st.session_state:
+    st.session_state.analysis_completed = False
+if 'target_company' not in st.session_state:
+    st.session_state.target_company = ""
+if 'target_position' not in st.session_state:
+    st.session_state.target_position = ""
+if 'analysis_data' not in st.session_state:
+    st.session_state.analysis_data = {}
+if 'editing_profile' not in st.session_state:
+    st.session_state.editing_profile = False
+if 'profile_summary' not in st.session_state:
+    st.session_state.profile_summary = ""
 
-# --- 세션 상태(Session State) 초기화 ---
-# 페이지 전환을 관리하기 위해 사용
-if 'page' not in st.session_state:
-    st.session_state.page = 'landing'
-if 'connected_platforms' not in st.session_state:
-    st.session_state.connected_platforms = set()
-if 'company' not in st.session_state:
-    st.session_state.company = ''
-if 'job' not in st.session_state:
-    st.session_state.job = ''
+# --- 헤더 ---
+st.markdown("""
+<div class="header">
+    <div class="logo-section">
+        <div class="logo">F</div>
+        <div class="brand-name">FitFolio</div>
+    </div>
+    <div class="nav-links">
+        <a href="#" class="nav-link">서비스 소개</a>
+        <a href="#" class="nav-link">사용 가이드</a>
+        <a href="#" class="nav-link">요금제</a>
+        <a href="#" class="nav-link">로그인</a>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-# --- 더미 데이터 (시뮬레이션용) ---
-USER_PROFILE = {
-    'skills': ['Python', 'PyTorch', 'TensorFlow', 'LLM', 'On-Device AI', 'React', 'Data Analysis'],
-    'projects': [
-        {
-            'title': '모바일 기기용 이미지 분류 모델 경량화',
-            'description': 'TensorFlow Lite를 사용하여 CNN 모델의 크기를 줄이고, 모바일 환경에서의 추론 속도를 30% 개선한 프로젝트입니다.',
-            'relatedSkills': ['Python', 'TensorFlow', 'On-Device AI']
-        },
-        {
-            'title': '소셜 미디어 감성 분석 모델',
-            'description': 'LSTM 기반의 딥러닝 모델을 사용하여 소셜 미디어 텍스트의 긍정/부정을 분류하는 프로젝트를 진행했습니다.',
-            'relatedSkills': ['Python', 'PyTorch', 'LLM']
-        },
-    ]
-}
+# --- Hero 섹션 ---
+st.markdown("""
+<div class="hero">
+    <h1 class="hero-title">AI 기반 <span class="highlight">맞춤형 포트폴리오</span> 자동 생성</h1>
+    <p class="hero-subtitle">
+        지원하고 싶은 기업을 입력하면, AI가 실시간으로 기업을 분석하고<br>
+        당신의 경험을 최적의 포트폴리오로 재구성합니다
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
-# --- 페이지 전환 함수 ---
-def change_page(page_name):
-    st.session_state.page = page_name
+# --- 입력 섹션 ---
+if not st.session_state.analysis_completed:
+    st.markdown('<div class="input-section">', unsafe_allow_html=True)
+    st.markdown("### 🎯 지원 정보 입력")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        company = st.text_input(
+            "지원 기업명",
+            placeholder="예: 네이버, 카카오, 삼성전자, Google...",
+            help="분석하고 싶은 기업명을 정확히 입력해주세요"
+        )
+    
+    with col2:
+        position = st.text_input(
+            "지원 직무/부서",
+            placeholder="예: AI 연구팀, 백엔드 개발자, 데이터 사이언티스트...",
+            help="구체적인 직무명이나 부서명을 입력하면 더 정확한 분석이 가능합니다"
+        )
+    
+    st.markdown("### 📊 개인 데이터 연결 (선택사항)")
+    
+    col3, col4, col5 = st.columns(3)
+    
+    with col3:
+        github_url = st.text_input("GitHub URL", placeholder="https://github.com/username")
+    
+    with col4:
+        linkedin_url = st.text_input("LinkedIn URL", placeholder="https://linkedin.com/in/username")
+    
+    with col5:
+        blog_url = st.text_input("기술 블로그 URL", placeholder="https://blog.example.com")
+    
+    st.markdown("---")
+    
+    analyze_button = st.button(
+        "🔍 AI 분석 시작하기", 
+        type="primary", 
+        use_container_width=True,
+        disabled=not (company and position)
+    )
+    
+    if analyze_button:
+        if company and position:
+            st.session_state.target_company = company
+            st.session_state.target_position = position
+            
+            # 로딩 애니메이션 표시
+            with st.spinner(f'{company}의 최신 동향을 분석하고 있습니다...'):
+                # 실제로는 여기서 AI 분석 API 호출
+                time.sleep(3)  # 시뮬레이션용 대기
+                
+                # 분석 결과 저장 (실제로는 API 응답)
+                st.session_state.analysis_data = {
+                    'company_trends': ['AI 기술 투자 확대', '클라우드 인프라 강화', '데이터 기반 의사결정'],
+                    'key_skills': ['Python/PyTorch', 'Machine Learning', '대규모 데이터 처리'],
+                    'company_values': ['혁신', '협업', '고객 중심'],
+                    'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템']
+                }
+                
+                # 맞춤형 자기소개서 생성
+                st.session_state.profile_summary = f"""
+{company} {position} 직무에 대한 깊은 이해와 관련 기술 역량을 바탕으로, 혁신적인 AI 솔루션 개발에 기여하고 싶습니다.
 
-# --- 각 페이지를 그리는 함수들 ---
+특히 Python과 PyTorch를 활용한 머신러닝 모델 개발 경험과 대규모 데이터 처리 능력을 통해, {company}의 AI 기술 투자 확대와 데이터 기반 의사결정 문화에 적극적으로 기여할 수 있습니다.
 
-def show_landing_page():
-    st.markdown("""
-    <div class="landing-container">
-        <h1>당신의 커리어, <span class="highlight">AI가 맞춤 설계</span>합니다.</h1>
-        <p>FitFolio는 흩어진 당신의 경험을 모아 지원하는 기업에 맞춰 포트폴리오를 자동으로 재구성해주는 가장 스마트한 방법입니다.</p>
+협업과 혁신을 중시하는 {company}의 기업 문화에 맞춰, 팀과 함께 성장하며 고객 중심의 가치를 실현하는 개발자가 되겠습니다.
+                """.strip()
+                
+                st.session_state.analysis_completed = True
+                st.rerun()
+        else:
+            st.error("기업명과 직무를 모두 입력해주세요.")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 분석 결과 표시 ---
+if st.session_state.analysis_completed:
+    st.markdown(f"""
+    <div style="background: linear-gradient(90deg, #667eea, #764ba2); color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem; text-align: center;">
+        <h3 style="margin: 0;">🎉 {st.session_state.target_company} {st.session_state.target_position} 맞춤 포트폴리오 생성 완료!</h3>
     </div>
     """, unsafe_allow_html=True)
-    if st.button("내 포트폴리오 만들기"):
-        change_page('connect')
-        st.rerun()
-
-def show_connect_page():
-    st.markdown('<h2 class="text-center">1. 데이터 연동하기</h2>', unsafe_allow_html=True)
     
-    platforms = {
-        "github": {"name": "GitHub", "desc": "프로젝트와 코드를 가져옵니다.", "icon": "https://simpleicons.org/icons/github.svg"},
-        "linkedin": {"name": "LinkedIn", "desc": "경력과 학력을 가져옵니다.", "icon": "https://simpleicons.org/icons/linkedin.svg"},
-        "tistory": {"name": "블로그 (Tistory)", "desc": "작성한 글과 전문성을 가져옵니다.", "icon": "https://simpleicons.org/icons/tistory.svg"},
-        "behance": {"name": "Behance", "desc": "디자인 작업물을 가져옵니다.", "icon": "https://simpleicons.org/icons/behance.svg"},
-    }
-
-    for key, val in platforms.items():
-        is_connected = key in st.session_state.connected_platforms
-        button_text = "연동 완료 ✔" if is_connected else "연동하기"
+    # 탭 네비게이션
+    tab1, tab2, tab3 = st.tabs([
+        "🔍 AI 분석 결과",
+        "🎯 핵심 역량 매칭",
+        "📁 포트폴리오 자료"
+    ])
+    
+    # --- 탭 1: AI 분석 결과 ---
+    with tab1:
+        col1, col2 = st.columns(2)
         
+        # 기업 분석 결과
+        with col1:
+            st.markdown(f"""
+            <div class="analysis-card">
+                <div class="card-header">
+                    <span class="badge badge-primary">실시간 분석 완료</span>
+                    <h2 class="card-title">{st.session_state.target_company} 기업 분석</h2>
+                    <p class="card-description">
+                        최신 뉴스, 기술 블로그, 채용 공고를 종합 분석한 결과입니다.
+                    </p>
+                </div>
+                <div class="skills-grid">
+            """, unsafe_allow_html=True)
+            
+            for trend in st.session_state.analysis_data['company_trends']:
+                st.markdown(f"""
+                <div class="skill-item">
+                    <h4>🔥 {trend}</h4>
+                    <p>현재 {st.session_state.target_company}의 핵심 전략 방향</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("</div></div>", unsafe_allow_html=True)
+        
+        # 맞춤형 자기소개서
+        with col2:
+            st.markdown("""
+            <div class="profile-card">
+                <div class="card-header">
+                    <span class="badge badge-success">AI 생성 완료</span>
+                    <h2 class="card-title">맞춤형 자기소개서</h2>
+                    <p class="card-description">기업 분석 결과를 반영한 개인화된 자기소개서입니다.</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            if st.session_state.editing_profile:
+                edited_text = st.text_area(
+                    "자기소개서 수정:",
+                    value=st.session_state.profile_summary,
+                    height=200,
+                    label_visibility="collapsed"
+                )
+                
+                col_save, col_cancel = st.columns(2)
+                if col_save.button("저장", type="primary", use_container_width=True):
+                    st.session_state.profile_summary = edited_text
+                    st.session_state.editing_profile = False
+                    st.rerun()
+                if col_cancel.button("취소", use_container_width=True):
+                    st.session_state.editing_profile = False
+                    st.rerun()
+            else:
+                st.markdown(f"""
+                <div style="background: #f9fafb; padding: 1rem; border-radius: 0.5rem; line-height: 1.6; white-space: pre-line;">
+                {st.session_state.profile_summary}
+                </div>
+                """, unsafe_allow_html=True)
+                
+                col_edit, col_download = st.columns(2)
+                if col_edit.button("✏️ 편집", use_container_width=True):
+                    st.session_state.editing_profile = True
+                    st.rerun()
+                
+                col_download.download_button(
+                    label="📄 다운로드",
+                    data=st.session_state.profile_summary,
+                    file_name=f"{st.session_state.target_company}_{st.session_state.target_position}_자기소개서.txt",
+                    mime="text/plain",
+                    use_container_width=True
+                )
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+    
+    # --- 탭 2: 핵심 역량 매칭 ---
+    with tab2:
         st.markdown(f"""
-        <div class="connect-card">
-            <img src="{val['icon']}" class="icon">
-            <div class="info">
-                <h3>{val['name']}</h3>
-                <p>{val['desc']}</p>
+        <div class="skills-card">
+            <div class="card-header">
+                <h2 class="card-title">🎯 {st.session_state.target_position} 핵심 역량 분석</h2>
+                <p class="card-description">현재 역량과 요구 역량 간의 매칭도를 확인하세요.</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        # 버튼을 카드 밖에 배치하여 클릭 이벤트 처리
-        if st.button(button_text, key=key, disabled=is_connected):
-            st.session_state.connected_platforms.add(key)
-            st.rerun() # 버튼 클릭 시 화면 새로고침
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    is_ready = len(st.session_state.connected_platforms) > 0
-    if st.button("다음 단계로", disabled=not is_ready):
-        change_page('input')
-        st.rerun()
-
-def show_input_page():
-    st.markdown('<h2 class="text-center">2. 포트폴리오 맞춤화</h2>', unsafe_allow_html=True)
-    with st.container():
-        st.markdown('<div class="input-form">', unsafe_allow_html=True)
-        company = st.text_input("지원 회사명", placeholder="예: 삼성전자")
-        job = st.text_input("지원 직무", placeholder="예: AI 연구원")
+        # 스킬 매칭 결과
+        skills_data = {
+            'Python/PyTorch': 85,
+            'Machine Learning': 78,
+            '대규모 데이터 처리': 72,
+            '클라우드 인프라': 65,
+            '팀워크 & 협업': 90
+        }
         
-        if st.button("AI 맞춤 포트폴리오 생성"):
-            if not company or not job:
-                st.warning("회사명과 직무를 모두 입력해주세요.")
-            else:
-                st.session_state.company = company
-                st.session_state.job = job
-                change_page('analysis')
-                st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-def show_analysis_page():
-    st.markdown('<div class="spinner-container">', unsafe_allow_html=True)
-    messages = [
-        f"'{st.session_state.company}'의 최신 기술 블로그를 분석 중입니다...",
-        "채용 공고의 핵심 요구 역량을 추출하고 있습니다...",
-        f"'{st.session_state.job}' 직무와 회원님의 경험 데이터 매칭 중...",
-        "프로젝트 설명을 AI가 재구성하는 중...",
-        "맞춤 포트폴리오 생성 완료!"
-    ]
-    
-    with st.spinner("AI가 분석 중입니다... 잠시만 기다려 주세요."):
-        for i, message in enumerate(messages):
-            st.text(message)
-            time.sleep(1.5) # 실제 작업 대신 시간 지연
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    change_page('result')
-    st.rerun()
-
-
-def show_result_page():
-    # 헤더
-    st.markdown(f"""
-    <header class="result-header">
-        <h2><span class="company-name">{st.session_state.company}</span> 맞춤 포트폴리오</h2>
-        <p>FitFolio의 AI가 <strong>{st.session_state.job}</strong> 직무에 맞춰 재구성한 결과입니다.</p>
-    </header>
-    """, unsafe_allow_html=True)
-
-    # AI 분석 요약
-    st.markdown("""
-    <div id="ai-summary-card" class="card portfolio-section">
-        <h3><span class="icon-emoji">💡</span>AI 분석 요약</h3>
-        <p>FitFolio AI가 분석한 '{company} {job}' 직무의 핵심은 <strong>'LLM 경량화'</strong>와 <strong>'온디바이스 AI'</strong> 경험입니다. 회원님의 경험을 이 키워드에 맞춰 강조하고 재구성했습니다.</p>
-    </div>
-    """.format(company=st.session_state.company, job=st.session_state.job), unsafe_allow_html=True)
-
-    # 핵심 역량
-    with st.container(border=False):
+        for skill, score in skills_data.items():
+            color = "🟢" if score >= 80 else "🟡" if score >= 70 else "🟠"
+            st.write(f"{color} **{skill}**")
+            st.progress(score/100, text=f"{score}% 매칭")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # 추천 개선 사항
         st.markdown("""
-        <div class="card portfolio-section">
-            <h3><span class="icon-emoji">🎯</span>핵심 역량 (Skills)</h3>
-            <div class="skills-grid">
+        <div class="analysis-card">
+            <div class="card-header">
+                <h3 class="card-title">💡 개선 추천사항</h3>
+            </div>
+            <div style="padding: 1rem; background: #fef3c7; border-radius: 0.5rem; border-left: 4px solid #f59e0b;">
+                <strong>클라우드 인프라</strong> 역량 강화가 필요합니다. AWS나 GCP 관련 프로젝트를 추가하면 더욱 경쟁력 있는 포트폴리오가 될 것입니다.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # --- 탭 3: 포트폴리오 자료 ---
+    with tab3:
+        st.markdown("""
+        <div class="analysis-card">
+            <div class="card-header">
+                <h2 class="card-title">📁 포트폴리오 현황</h2>
+                <p class="card-description">현재 포트폴리오 자료의 완성도를 확인하세요.</p>
+            </div>
         """, unsafe_allow_html=True)
         
-        required_skills = ['On-Device AI', 'LLM', 'PyTorch']
-        for skill in USER_PROFILE['skills']:
-            highlight_class = "highlighted" if skill in required_skills else ""
-            st.markdown(f'<div class="skill-tag {highlight_class}">{skill}</div>', unsafe_allow_html=True)
+        # 포트폴리오 항목들
+        portfolio_items = [
+            {"title": "AI 모델 최적화 프로젝트", "status": "완료", "relevance": "높음"},
+            {"title": "데이터 파이프라인 구축", "status": "완료", "relevance": "높음"}, 
+            {"title": "GitHub 오픈소스 기여", "status": "업데이트 필요", "relevance": "보통"},
+            {"title": "기술 블로그 포스팅", "status": "진행중", "relevance": "보통"}
+        ]
         
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
-    # 프로젝트 재구성
-    with st.container(border=False):
-        st.markdown("""
-        <div class="card portfolio-section">
-            <h3><span class="icon-emoji">🚀</span>프로젝트 재구성 (Projects)</h3>
-        """, unsafe_allow_html=True)
-        
-        for project in USER_PROFILE['projects']:
+        for item in portfolio_items:
+            status_color = "success" if item["status"] == "완료" else "warning"
+            relevance_color = "primary" if item["relevance"] == "높음" else "secondary"
+            
             st.markdown(f"""
-            <div class="project-card">
-                <h4>{project['title']}</h4>
-                <p>{project['description']}</p>
-                <div class="ai-rewrite">
-                    <div class="rewrite-header">✨ AI Rewrite</div>
-                    <p>'{st.session_state.company}'가 최근 집중하고 있는 <strong>'온디바이스 AI'</strong> 전략에 맞춰, <strong>TensorFlow Lite 기반 모델 경량화</strong> 경험을 강조했습니다. 이를 통해 제한된 하드웨어 환경에서의 효율적인 AI 모델 배포 및 운영 능력을 어필할 수 있습니다.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f9fafb; border-radius: 0.5rem; margin-bottom: 0.5rem;">
+                <div>
+                    <strong>{item["title"]}</strong>
+                </div>
+                <div>
+                    <span class="badge badge-{status_color}">{item["status"]}</span>
+                    <span class="badge badge-{relevance_color}">관련성 {item["relevance"]}</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
+        
         st.markdown("</div>", unsafe_allow_html=True)
-
-    if st.button("처음으로 돌아가기"):
-        # 세션 상태 초기화
-        st.session_state.page = 'landing'
-        st.session_state.connected_platforms = set()
+        
+        # 파일 업로드 섹션
+        st.markdown("### 📤 추가 자료 업로드")
+        uploaded_files = st.file_uploader(
+            "포트폴리오에 추가할 파일을 업로드하세요",
+            type=['pdf', 'docx', 'pptx', 'png', 'jpg', 'jpeg'],
+            accept_multiple_files=True
+        )
+        
+        if uploaded_files:
+            st.success(f"✅ {len(uploaded_files)}개의 파일이 업로드되었습니다!")
+            for file in uploaded_files:
+                st.write(f"• {file.name}")
+    
+    # 새로운 분석 시작 버튼
+    st.markdown("<br><hr>", unsafe_allow_html=True)
+    if st.button("🔄 새로운 기업 분석하기", type="secondary"):
+        st.session_state.analysis_completed = False
+        st.session_state.target_company = ""
+        st.session_state.target_position = ""
+        st.session_state.analysis_data = {}
+        st.session_state.profile_summary = ""
+        st.session_state.editing_profile = False
         st.rerun()
 
-# --- 메인 로직 ---
-# 세션 상태에 따라 적절한 페이지를 표시
-if st.session_state.page == 'landing':
-    show_landing_page()
-elif st.session_state.page == 'connect':
-    show_connect_page()
-elif st.session_state.page == 'input':
-    show_input_page()
-elif st.session_state.page == 'analysis':
-    show_analysis_page()
-elif st.session_state.page == 'result':
-    show_result_page()
+# --- 푸터 ---
+st.markdown("""
+<div style="text-align: center; padding: 2rem; color: #6b7280; border-top: 1px solid #e5e7eb; margin-top: 3rem;">
+    <p>&copy; 2024 FitFolio. AI 기반 맞춤형 포트폴리오 생성 서비스</p>
+    <p style="font-size: 0.875rem;">개인의 경험을 기업의 미래와 연결합니다</p>
+</div>
+""", unsafe_allow_html=True)

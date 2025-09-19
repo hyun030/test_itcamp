@@ -77,6 +77,10 @@ st.markdown("""
     background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
     border-radius: 1rem;
     margin-bottom: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .hero-title {
@@ -84,15 +88,17 @@ st.markdown("""
     font-weight: bold;
     color: #1f2937;
     margin-bottom: 1rem;
+    width: 100%;
 }
 
 .hero-subtitle {
     font-size: 1.25rem;
     color: #6b7280;
     margin-bottom: 2rem;
-    max-width: 600px;
+    max-width: 700px;
     margin-left: auto;
     margin-right: auto;
+    width: 100%;
 }
 
 .highlight {

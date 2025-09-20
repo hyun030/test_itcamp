@@ -1,5 +1,8 @@
 import streamlit as st
 import time
+from news import fetch_news
+from get_readme_list import get_readme_list
+from use_gemini import use_gemini
 
 # --- 페이지 설정 ---
 st.set_page_config(
@@ -282,7 +285,7 @@ if not st.session_state.analysis_completed:
     col3, col4, col5 = st.columns(3)
     
     with col3:
-        github_url = st.text_input("GitHub URL", placeholder="https://github.com/username")
+        github_token = st.text_input("GitHub TOKEN", placeholder="github_pat_xxx")
     
     with col4:
         linkedin_url = st.text_input("LinkedIn URL", placeholder="https://linkedin.com/in/username")
@@ -307,24 +310,31 @@ if not st.session_state.analysis_completed:
             # 로딩 애니메이션 표시
             with st.spinner(f'{company}의 최신 동향을 분석하고 있습니다...'):
                 # 실제로는 여기서 AI 분석 API 호출
-                time.sleep(3)  # 시뮬레이션용 대기
+                trend, skills, company_values = fetch_news(company, position)
+                github_token = "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"
+                readme_list = get_readme_list(github_token)
+                prompt = f"""
+                다음은 여러 GitHub 저장소의 README 파일 내용과 지원하려는 기업에 대한 정보야. 이 내용들을 종합하여 짧은 자기 소개글을 3문단인 글로 출력해줘. 수행한 프로젝트와 기술 스택의 핵심 키워드가 들어갔으면 좋겠어. 강조 효과, 주석 등 없이 순수 텍스트로만 출력해줘.
+        
+                README 파일 내용: {' | '.join(readme_list)}
+                기업 이름: {company}
+                기업 트렌드: {' | '.join(trend)}
+                핵심 역량: {' | '.join(skills)}
+                기업의 인재상: {' | '.join(company_values)}
+                """
+                jagisogaeseo = use_gemini(prompt)
+                # time.sleep(3)  # 시뮬레이션용 대기
                 
                 # 분석 결과 저장 (실제로는 API 응답)
                 st.session_state.analysis_data = {
-                    'company_trends': ['AI 기술 투자 확대', '클라우드 인프라 강화', '데이터 기반 의사결정'],
-                    'key_skills': ['Python/PyTorch', 'Machine Learning', '대규모 데이터 처리'],
-                    'company_values': ['혁신', '협업', '고객 중심'],
+                    'company_trends': trend,
+                    'key_skills': skills,
+                    'company_values': company_values,
                     'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템']
                 }
                 
                 # 맞춤형 자기소개서 생성
-                st.session_state.profile_summary = f"""
-{company} {position} 직무에 대한 깊은 이해와 관련 기술 역량을 바탕으로, 혁신적인 AI 솔루션 개발에 기여하고 싶습니다.
-
-특히 Python과 PyTorch를 활용한 머신러닝 모델 개발 경험과 대규모 데이터 처리 능력을 통해, {company}의 AI 기술 투자 확대와 데이터 기반 의사결정 문화에 적극적으로 기여할 수 있습니다.
-
-협업과 혁신을 중시하는 {company}의 기업 문화에 맞춰, 팀과 함께 성장하며 고객 중심의 가치를 실현하는 개발자가 되겠습니다.
-                """.strip()
+                st.session_state.profile_summary = jagisogaeseo.strip()
                 
                 st.session_state.analysis_completed = True
                 st.rerun()

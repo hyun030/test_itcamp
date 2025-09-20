@@ -285,7 +285,7 @@ if not st.session_state.analysis_completed:
 
     with col3:
         user_github_token = st.text_input(
-            "GitHub Token (선택 사항)",
+            "GitHub Token",
             type="password",
             placeholder="github_pat_xxx...",
             help="개인 GitHub README 분석을 위해 토큰을 입력하세요. 비워두면 기본 분석이 실행될 수 있습니다."

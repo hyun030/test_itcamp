@@ -280,9 +280,16 @@ if not st.session_state.analysis_completed:
             help="구체적인 직무명이나 부서명을 입력하면 더 정확한 분석이 가능합니다"
         )
     
-    # GitHub 토큰 입력 UI를 제거하고, 다른 입력 필드만 남깁니다.
-    st.markdown("### 📊 개인 데이터 연결 (선택사항)")
-    col4, col5 = st.columns(2)
+    st.markdown("### 📊 개인 데이터 연결")
+    col3, col4, col5 = st.columns(3)
+    
+    with col3:
+        user_github_token = st.text_input(
+            "GitHub Token (선택 사항)",
+            type="password",
+            placeholder="github_pat_xxx...",
+            help="개인 GitHub README 분석을 위해 토큰을 입력하세요. 비워두면 기본 분석이 실행될 수 있습니다."
+        )
     
     with col4:
         linkedin_url = st.text_input("LinkedIn URL", placeholder="https://linkedin.com/in/username")
@@ -307,14 +314,27 @@ if not st.session_state.analysis_completed:
             with st.spinner(f'{company}의 최신 동향을 분석하고 있습니다...'):
                 trend, skills, company_values = fetch_news(company, position)
 
-                # st.secrets에서 토큰을 안전하게 불러옵니다.
-                try:
-                    github_token = st.secrets["GITHUB_TOKEN"]
-                except KeyError:
-                    st.error("GitHub 토큰이 설정되지 않았습니다. .streamlit/secrets.toml 파일을 확인해주세요.")
-                    st.stop() # 토큰이 없으면 앱 실행 중지
+                # --- 수정된 토큰 처리 로직 ---
+                github_token = None
+                # 1. 사용자가 입력한 토큰을 최우선으로 사용
+                if user_github_token:
+                    github_token = user_github_token
+                # 2. 사용자 입력이 없으면 secrets.toml의 토큰을 사용 (존재할 경우)
+                else:
+                    try:
+                        github_token = st.secrets["GITHUB_TOKEN"]
+                        st.info("개인 토큰이 없어 기본 GitHub 분석을 실행합니다.")
+                    except KeyError:
+                        # secrets.toml에도 토큰이 없는 경우
+                        pass
 
-                readme_list = get_readme_list(github_token)
+                readme_list = []
+                # 최종적으로 토큰이 있을 경우에만 GitHub 데이터 요청
+                if github_token:
+                    readme_list = get_readme_list(github_token)
+                else:
+                    st.warning("GitHub 토큰이 제공되지 않아 GitHub README 분석을 건너뜁니다.")
+
 
                 # TypeError 방지를 위해 None 값을 제거하고 모든 요소를 문자열로 변환합니다.
                 readme_contents = [str(readme) for readme in readme_list if readme]

@@ -2,8 +2,19 @@ import streamlit as st
 import time
 import requests
 import json
+import sys
+import os
 
-# --- 뉴스 분석 함수 추가 (기존 코드에 추가만) ---
+# utils 폴더를 Python path에 추가
+sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
+
+try:
+    from github_analyzer import GitHubAnalyzer
+except ImportError:
+    st.error("github_analyzer 모듈을 찾을 수 없습니다. utils/github_analyzer.py 파일이 있는지 확인해주세요.")
+    st.stop()
+
+# --- 뉴스 분석 함수 ---
 def fetch_news_analysis(company, role):
     """Perplexity API를 통한 실제 뉴스 분석"""
     url = "https://api.perplexity.ai/chat/completions"
@@ -42,12 +53,11 @@ def parse_analysis(content, company, role):
     """응답 내용을 기존 데이터 구조에 맞게 파싱"""
     sentences = content.split('.')
     
-    # 기본 구조는 기존과 동일하게 유지
     return {
         'company_trends': [s.strip() for s in sentences[:3] if len(s.strip()) > 10],
-        'key_skills': ['Python/PyTorch', 'Machine Learning', '대규모 데이터 처리'],  # 기본값 유지
-        'company_values': ['혁신', '협업', '고객 중심'],  # 기본값 유지
-        'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템'],  # 기본값 유지
+        'key_skills': ['Python/PyTorch', 'Machine Learning', '대규모 데이터 처리'],
+        'company_values': ['혁신', '협업', '고객 중심'],
+        'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템'],
         'raw_content': content
     }
 
@@ -278,6 +288,10 @@ if 'editing_profile' not in st.session_state:
     st.session_state.editing_profile = False
 if 'profile_summary' not in st.session_state:
     st.session_state.profile_summary = ""
+if 'github_summary' not in st.session_state:
+    st.session_state.github_summary = ""
+if 'github_analyzer' not in st.session_state:
+    st.session_state.github_analyzer = GitHubAnalyzer()
 
 # --- 헤더 ---
 st.markdown("""
@@ -333,6 +347,17 @@ if not st.session_state.analysis_completed:
     
     with col3:
         github_token = st.text_input("GitHub TOKEN", placeholder="github_pat_xxx")
+        
+        # GitHub 프로젝트 분석 버튼
+        if github_token and st.button("🔍 GitHub 프로젝트 분석", use_container_width=True):
+            github_summary = st.session_state.github_analyzer.analyze_github_projects(github_token)
+            if github_summary:
+                st.session_state.github_summary = github_summary
+                st.success("✅ GitHub 프로젝트 분석이 완료되었습니다!")
+                with st.expander("📊 GitHub 프로젝트 요약 보기"):
+                    st.write(github_summary)
+            else:
+                st.error("❌ GitHub 프로젝트 분석에 실패했습니다.")
     
     with col4:
         linkedin_url = st.text_input("LinkedIn URL", placeholder="https://linkedin.com/in/username")
@@ -354,15 +379,14 @@ if not st.session_state.analysis_completed:
             st.session_state.target_company = company
             st.session_state.target_position = position
             
-            # 실제 뉴스 분석 호출 (기존 더미 데이터 대신)
+            # 실제 뉴스 분석 호출
             with st.spinner(f'{company}의 최신 동향을 분석하고 있습니다...'):
                 analysis_result = fetch_news_analysis(company, position)
                 
                 if analysis_result:
-                    # 실제 분석 결과 사용
                     st.session_state.analysis_data = analysis_result
                 else:
-                    # API 실패시 기존 더미 데이터 사용
+                    # API 실패시 기본값 사용
                     st.session_state.analysis_data = {
                         'company_trends': ['AI 기술 투자 확대', '클라우드 인프라 강화', '데이터 기반 의사결정'],
                         'key_skills': ['Python/PyTorch', 'Machine Learning', '대규모 데이터 처리'],
@@ -370,7 +394,7 @@ if not st.session_state.analysis_completed:
                         'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템']
                     }
                 
-                # 맞춤형 자기소개서 생성 (기존 로직과 동일)
+                # 자기소개서 생성
                 st.session_state.profile_summary = f"""
 {company} {position} 직무에 대한 깊은 이해와 관련 기술 역량을 바탕으로, 혁신적인 AI 솔루션 개발에 기여하고 싶습니다.
 
@@ -386,7 +410,7 @@ if not st.session_state.analysis_completed:
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 분석 결과 표시 (기존과 완전 동일) ---
+# --- 분석 결과 표시 ---
 if st.session_state.analysis_completed:
     st.markdown(f"""
     <div style="background: linear-gradient(90deg, #667eea, #764ba2); color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem; text-align: center;">
@@ -546,41 +570,4 @@ if st.session_state.analysis_completed:
                 </div>
                 <div>
                     <span class="badge badge-{status_color}">{item["status"]}</span>
-                    <span class="badge badge-{relevance_color}">관련성 {item["relevance"]}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        # 파일 업로드 섹션
-        st.markdown("### 📤 추가 자료 업로드")
-        uploaded_files = st.file_uploader(
-            "포트폴리오에 추가할 파일을 업로드하세요",
-            type=['pdf', 'docx', 'pptx', 'png', 'jpg', 'jpeg'],
-            accept_multiple_files=True
-        )
-        
-        if uploaded_files:
-            st.success(f"✅ {len(uploaded_files)}개의 파일이 업로드되었습니다!")
-            for file in uploaded_files:
-                st.write(f"• {file.name}")
-    
-    # 새로운 분석 시작 버튼
-    st.markdown("<br><hr>", unsafe_allow_html=True)
-    if st.button("🔄 새로운 기업 분석하기", type="secondary"):
-        st.session_state.analysis_completed = False
-        st.session_state.target_company = ""
-        st.session_state.target_position = ""
-        st.session_state.analysis_data = {}
-        st.session_state.profile_summary = ""
-        st.session_state.editing_profile = False
-        st.rerun()
-
-# --- 푸터 ---
-st.markdown("""
-<div style="text-align: center; padding: 2rem; color: #6b7280; border-top: 1px solid #e5e7eb; margin-top: 3rem;">
-    <p>&copy; 2024 FitFolio. AI 기반 맞춤형 포트폴리오 생성 서비스</p>
-    <p style="font-size: 0.875rem;">개인의 경험을 기업의 미래와 연결합니다</p>
-</div>
-""", unsafe_allow_html=True)
+                    <span

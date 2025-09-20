@@ -1,5 +1,55 @@
 import streamlit as st
 import time
+import requests
+import json
+
+# --- 뉴스 분석 함수 추가 (기존 코드에 추가만) ---
+def fetch_news_analysis(company, role):
+    """Perplexity API를 통한 실제 뉴스 분석"""
+    url = "https://api.perplexity.ai/chat/completions"
+    payload = {
+        "model": "sonar",
+        "messages": [
+            {
+                "role": "system",
+                "content": "기업의 이름과 직무를 입력할거야. 너는 그 기업에 관련된 최신 동향을 알려줘. 그리고 그 동향을 토대로 해당 직무에 필요한 역량을 핵심 키워드로 정리해줘. 답변은 한국어로, 3~5줄 이내로 작성해줘. 링크 주석, 글자 강조 표시 등은 모두 제거하고 줄글로만 작성해줘."
+            },
+            {
+                "role": "user",
+                "content": f"기업: {company}, 직무: {role}"
+            }
+        ]
+    }
+    headers = {
+        "Authorization": "Bearer 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",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
+        result = response.json()
+        
+        if 'choices' in result and len(result['choices']) > 0:
+            content = result['choices'][0]['message']['content']
+            return parse_analysis(content, company, role)
+        else:
+            return None
+    except:
+        return None
+
+def parse_analysis(content, company, role):
+    """응답 내용을 기존 데이터 구조에 맞게 파싱"""
+    sentences = content.split('.')
+    
+    # 기본 구조는 기존과 동일하게 유지
+    return {
+        'company_trends': [s.strip() for s in sentences[:3] if len(s.strip()) > 10],
+        'key_skills': ['Python/PyTorch', 'Machine Learning', '대규모 데이터 처리'],  # 기본값 유지
+        'company_values': ['혁신', '협업', '고객 중심'],  # 기본값 유지
+        'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템'],  # 기본값 유지
+        'raw_content': content
+    }
 
 # --- 페이지 설정 ---
 st.set_page_config(
@@ -304,20 +354,23 @@ if not st.session_state.analysis_completed:
             st.session_state.target_company = company
             st.session_state.target_position = position
             
-            # 로딩 애니메이션 표시
+            # 실제 뉴스 분석 호출 (기존 더미 데이터 대신)
             with st.spinner(f'{company}의 최신 동향을 분석하고 있습니다...'):
-                # 실제로는 여기서 AI 분석 API 호출
-                # time.sleep(3)  # 시뮬레이션용 대기
+                analysis_result = fetch_news_analysis(company, position)
                 
-                # 분석 결과 저장 (실제로는 API 응답)
-                st.session_state.analysis_data = {
-                    'company_trends': ['AI 기술 투자 확대', '클라우드 인프라 강화', '데이터 기반 의사결정'],
-                    'key_skills': ['Python/PyTorch', 'Machine Learning', '대규모 데이터 처리'],
-                    'company_values': ['혁신', '협업', '고객 중심'],
-                    'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템']
-                }
+                if analysis_result:
+                    # 실제 분석 결과 사용
+                    st.session_state.analysis_data = analysis_result
+                else:
+                    # API 실패시 기존 더미 데이터 사용
+                    st.session_state.analysis_data = {
+                        'company_trends': ['AI 기술 투자 확대', '클라우드 인프라 강화', '데이터 기반 의사결정'],
+                        'key_skills': ['Python/PyTorch', 'Machine Learning', '대규모 데이터 처리'],
+                        'company_values': ['혁신', '협업', '고객 중심'],
+                        'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템']
+                    }
                 
-                # 맞춤형 자기소개서 생성
+                # 맞춤형 자기소개서 생성 (기존 로직과 동일)
                 st.session_state.profile_summary = f"""
 {company} {position} 직무에 대한 깊은 이해와 관련 기술 역량을 바탕으로, 혁신적인 AI 솔루션 개발에 기여하고 싶습니다.
 
@@ -333,7 +386,7 @@ if not st.session_state.analysis_completed:
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 분석 결과 표시 ---
+# --- 분석 결과 표시 (기존과 완전 동일) ---
 if st.session_state.analysis_completed:
     st.markdown(f"""
     <div style="background: linear-gradient(90deg, #667eea, #764ba2); color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem; text-align: center;">

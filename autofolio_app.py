@@ -263,26 +263,26 @@ st.markdown("""
 if not st.session_state.analysis_completed:
     st.markdown('<div class="input-section">', unsafe_allow_html=True)
     st.markdown("### 🎯 지원 정보 입력")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         company = st.text_input(
             "지원 기업명",
             placeholder="예: 네이버, 카카오, 삼성전자, Google...",
             help="분석하고 싶은 기업명을 정확히 입력해주세요"
         )
-    
+
     with col2:
         position = st.text_input(
             "지원 직무/부서",
             placeholder="예: AI 연구팀, 백엔드 개발자, 데이터 사이언티스트...",
             help="구체적인 직무명이나 부서명을 입력하면 더 정확한 분석이 가능합니다"
         )
-    
+
     st.markdown("### 📊 개인 데이터 연결")
     col3, col4, col5 = st.columns(3)
-    
+
     with col3:
         user_github_token = st.text_input(
             "GitHub Token (선택 사항)",
@@ -290,83 +290,81 @@ if not st.session_state.analysis_completed:
             placeholder="github_pat_xxx...",
             help="개인 GitHub README 분석을 위해 토큰을 입력하세요. 비워두면 기본 분석이 실행될 수 있습니다."
         )
-    
+
     with col4:
         linkedin_url = st.text_input("LinkedIn URL", placeholder="https://linkedin.com/in/username")
-    
+
     with col5:
         blog_url = st.text_input("기술 블로그 URL", placeholder="https://blog.example.com")
-    
+
     st.markdown("---")
-    
+
     analyze_button = st.button(
-        "🔍 AI 분석 시작하기", 
-        type="primary", 
+        "🔍 AI 분석 시작하기",
+        type="primary",
         use_container_width=True,
         disabled=not (company and position)
     )
-    
+
     if analyze_button:
         if company and position:
             st.session_state.target_company = company
             st.session_state.target_position = position
-            
+
             with st.spinner(f'{company}의 최신 동향을 분석하고 있습니다...'):
                 trend, skills, company_values = fetch_news(company, position)
 
-                # --- 수정된 토큰 처리 로직 ---
                 github_token = None
-                # 1. 사용자가 입력한 토큰을 최우선으로 사용
                 if user_github_token:
                     github_token = user_github_token
-                # 2. 사용자 입력이 없으면 secrets.toml의 토큰을 사용 (존재할 경우)
                 else:
                     try:
                         github_token = st.secrets["GITHUB_TOKEN"]
                         st.info("개인 토큰이 없어 기본 GitHub 분석을 실행합니다.")
                     except KeyError:
-                        # secrets.toml에도 토큰이 없는 경우
                         pass
 
                 readme_list = []
-                # 최종적으로 토큰이 있을 경우에만 GitHub 데이터 요청
                 if github_token:
-                    readme_list = get_readme_list(github_token)
+                    # get_readme_list가 None을 반환할 경우를 대비합니다.
+                    result = get_readme_list(github_token)
+                    if result is not None:
+                        readme_list = result
+                    else:
+                        st.warning("GitHub 토큰이 유효하지 않거나 데이터를 가져오는 데 실패했습니다.")
+                        readme_list = [] # 실패 시 비어있는 리스트로 초기화
                 else:
                     st.warning("GitHub 토큰이 제공되지 않아 GitHub README 분석을 건너뜁니다.")
 
-
-                # TypeError 방지를 위해 None 값을 제거하고 모든 요소를 문자열로 변환합니다.
+                # 이제 readme_list는 절대 None이 아니므로 에러가 발생하지 않습니다.
                 readme_contents = [str(readme) for readme in readme_list if readme]
 
                 prompt = f"""
                 다음은 여러 GitHub 저장소의 README 파일 내용과 지원하려는 기업에 대한 정보야. 이 내용들을 종합하여 짧은 자기 소개글을 3문단인 글로 출력해줘. 수행한 프로젝트와 기술 스택의 핵심 키워드가 들어갔으면 좋겠어. 강조 효과, 주석 등 없이 순수 텍스트로만 출력해줘.
-        
+
                 README 파일 내용: {' | '.join(readme_contents)}
                 기업 이름: {company}
                 기업 트렌드: {' | '.join(trend)}
                 핵심 역량: {' | '.join(skills)}
                 기업의 인재상: {' | '.join(company_values)}
                 """
-                
+
                 jagisogaeseo = use_gemini(prompt)
-                
-                # 분석 결과 저장
+
                 st.session_state.analysis_data = {
                     'company_trends': trend,
                     'key_skills': skills,
                     'company_values': company_values,
                     'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템']
                 }
-                
-                # 맞춤형 자기소개서 생성
+
                 st.session_state.profile_summary = jagisogaeseo.strip()
-                
+
                 st.session_state.analysis_completed = True
                 st.rerun()
         else:
             st.error("기업명과 직무를 모두 입력해주세요.")
-    
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 분석 결과 표시 ---
@@ -376,18 +374,18 @@ if st.session_state.analysis_completed:
         <h3 style="margin: 0;">🎉 {st.session_state.target_company} {st.session_state.target_position} 맞춤 포트폴리오 생성 완료!</h3>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # 탭 네비게이션
     tab1, tab2, tab3 = st.tabs([
         "🔍 AI 분석 결과",
         "🎯 핵심 역량 매칭",
         "📁 포트폴리오 자료"
     ])
-    
+
     # --- 탭 1: AI 분석 결과 ---
     with tab1:
         col1, col2 = st.columns(2)
-        
+
         # 기업 분석 결과
         with col1:
             st.markdown(f"""
@@ -401,17 +399,17 @@ if st.session_state.analysis_completed:
                 </div>
                 <div class="skills-grid">
             """, unsafe_allow_html=True)
-            
-            for trend in st.session_state.analysis_data['company_trends']:
+
+            for trend_item in st.session_state.analysis_data['company_trends']:
                 st.markdown(f"""
                 <div class="skill-item">
-                    <h4>🔥 {trend}</h4>
+                    <h4>🔥 {trend_item}</h4>
                     <p>현재 {st.session_state.target_company}의 핵심 전략 방향</p>
                 </div>
                 """, unsafe_allow_html=True)
-            
+
             st.markdown("</div></div>", unsafe_allow_html=True)
-        
+
         # 맞춤형 자기소개서
         with col2:
             st.markdown("""
@@ -422,7 +420,7 @@ if st.session_state.analysis_completed:
                     <p class="card-description">기업 분석 결과를 반영한 개인화된 자기소개서입니다.</p>
                 </div>
             """, unsafe_allow_html=True)
-            
+
             if st.session_state.editing_profile:
                 edited_text = st.text_area(
                     "자기소개서 수정:",
@@ -430,7 +428,7 @@ if st.session_state.analysis_completed:
                     height=200,
                     label_visibility="collapsed"
                 )
-                
+
                 col_save, col_cancel = st.columns(2)
                 if col_save.button("저장", type="primary", use_container_width=True):
                     st.session_state.profile_summary = edited_text
@@ -445,12 +443,12 @@ if st.session_state.analysis_completed:
                 {st.session_state.profile_summary}
                 </div>
                 """, unsafe_allow_html=True)
-                
+
                 col_edit, col_download = st.columns(2)
                 if col_edit.button("✏️ 편집", use_container_width=True):
                     st.session_state.editing_profile = True
                     st.rerun()
-                
+
                 col_download.download_button(
                     label="📄 다운로드",
                     data=st.session_state.profile_summary,
@@ -458,9 +456,9 @@ if st.session_state.analysis_completed:
                     mime="text/plain",
                     use_container_width=True
                 )
-            
+
             st.markdown("</div>", unsafe_allow_html=True)
-    
+
     # --- 탭 2: 핵심 역량 매칭 ---
     with tab2:
         st.markdown(f"""
@@ -471,7 +469,7 @@ if st.session_state.analysis_completed:
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
+
         # 스킬 매칭 결과
         skills_data = {
             'Python/PyTorch': 85,
@@ -480,14 +478,14 @@ if st.session_state.analysis_completed:
             '클라우드 인프라': 65,
             '팀워크 & 협업': 90
         }
-        
+
         for skill, score in skills_data.items():
             color = "🟢" if score >= 80 else "🟡" if score >= 70 else "🟠"
             st.write(f"{color} **{skill}**")
             st.progress(score/100, text=f"{score}% 매칭")
-        
+
         st.markdown("<br>", unsafe_allow_html=True)
-        
+
         # 추천 개선 사항
         st.markdown("""
         <div class="analysis-card">
@@ -499,7 +497,7 @@ if st.session_state.analysis_completed:
             </div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     # --- 탭 3: 포트폴리오 자료 ---
     with tab3:
         st.markdown("""
@@ -509,19 +507,19 @@ if st.session_state.analysis_completed:
                 <p class="card-description">현재 포트폴리오 자료의 완성도를 확인하세요.</p>
             </div>
         """, unsafe_allow_html=True)
-        
+
         # 포트폴리오 항목들
         portfolio_items = [
             {"title": "AI 모델 최적화 프로젝트", "status": "완료", "relevance": "높음"},
-            {"title": "데이터 파이프라인 구축", "status": "완료", "relevance": "높음"}, 
+            {"title": "데이터 파이프라인 구축", "status": "완료", "relevance": "높음"},
             {"title": "GitHub 오픈소스 기여", "status": "업데이트 필요", "relevance": "보통"},
             {"title": "기술 블로그 포스팅", "status": "진행중", "relevance": "보통"}
         ]
-        
+
         for item in portfolio_items:
             status_color = "success" if item["status"] == "완료" else "warning"
             relevance_color = "primary" if item["relevance"] == "높음" else "secondary"
-            
+
             st.markdown(f"""
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f9fafb; border-radius: 0.5rem; margin-bottom: 0.5rem;">
                 <div>
@@ -533,9 +531,9 @@ if st.session_state.analysis_completed:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-        
+
         st.markdown("</div>", unsafe_allow_html=True)
-        
+
         # 파일 업로드 섹션
         st.markdown("### 📤 추가 자료 업로드")
         uploaded_files = st.file_uploader(
@@ -543,12 +541,12 @@ if st.session_state.analysis_completed:
             type=['pdf', 'docx', 'pptx', 'png', 'jpg', 'jpeg'],
             accept_multiple_files=True
         )
-        
+
         if uploaded_files:
             st.success(f"✅ {len(uploaded_files)}개의 파일이 업로드되었습니다!")
             for file in uploaded_files:
                 st.write(f"• {file.name}")
-    
+
     # 새로운 분석 시작 버튼
     st.markdown("<br><hr>", unsafe_allow_html=True)
     if st.button("🔄 새로운 기업 분석하기", type="secondary"):

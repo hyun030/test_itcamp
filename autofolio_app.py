@@ -280,12 +280,9 @@ if not st.session_state.analysis_completed:
             help="구체적인 직무명이나 부서명을 입력하면 더 정확한 분석이 가능합니다"
         )
     
+    # GitHub 토큰 입력 UI를 제거하고, 다른 입력 필드만 남깁니다.
     st.markdown("### 📊 개인 데이터 연결 (선택사항)")
-    
-    col3, col4, col5 = st.columns(3)
-    
-    with col3:
-        github_token = st.text_input("GitHub TOKEN", placeholder="github_pat_xxx")
+    col4, col5 = st.columns(2)
     
     with col4:
         linkedin_url = st.text_input("LinkedIn URL", placeholder="https://linkedin.com/in/username")
@@ -307,29 +304,37 @@ if not st.session_state.analysis_completed:
             st.session_state.target_company = company
             st.session_state.target_position = position
             
-            # 로딩 애니메이션 표시
             with st.spinner(f'{company}의 최신 동향을 분석하고 있습니다...'):
-                # 분석 API 호출
                 trend, skills, company_values = fetch_news(company, position)
-                github_token = "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"
+
+                # st.secrets에서 토큰을 안전하게 불러옵니다.
+                try:
+                    github_token = st.secrets["GITHUB_TOKEN"]
+                except KeyError:
+                    st.error("GitHub 토큰이 설정되지 않았습니다. .streamlit/secrets.toml 파일을 확인해주세요.")
+                    st.stop() # 토큰이 없으면 앱 실행 중지
+
                 readme_list = get_readme_list(github_token)
+
+                # TypeError 방지를 위해 None 값을 제거하고 모든 요소를 문자열로 변환합니다.
+                readme_contents = [str(readme) for readme in readme_list if readme]
+
                 prompt = f"""
                 다음은 여러 GitHub 저장소의 README 파일 내용과 지원하려는 기업에 대한 정보야. 이 내용들을 종합하여 짧은 자기 소개글을 3문단인 글로 출력해줘. 수행한 프로젝트와 기술 스택의 핵심 키워드가 들어갔으면 좋겠어. 강조 효과, 주석 등 없이 순수 텍스트로만 출력해줘.
         
-                README 파일 내용: {' | '.join(readme_list)}
+                README 파일 내용: {' | '.join(readme_contents)}
                 기업 이름: {company}
                 기업 트렌드: {' | '.join(trend)}
                 핵심 역량: {' | '.join(skills)}
                 기업의 인재상: {' | '.join(company_values)}
                 """
-                jagisogaeseo = use_gemini(prompt)
-                # time.sleep(3)  # 시뮬레이션용 대기
                 
-                # 분석 결과 저장 (실제로는 API 응답)
+                jagisogaeseo = use_gemini(prompt)
+                
+                # 분석 결과 저장
                 st.session_state.analysis_data = {
                     'company_trends': trend,
                     'key_skills': skills,
-                    # 'key_skills': ['Python/PyTorch', 'Machine Learning', '대규모 데이터 처리'],
                     'company_values': company_values,
                     'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템']
                 }
@@ -542,3 +547,4 @@ st.markdown("""
     <p style="font-size: 0.875rem;">개인의 경험을 기업의 미래와 연결합니다</p>
 </div>
 """, unsafe_allow_html=True)
+

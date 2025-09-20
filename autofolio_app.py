@@ -280,7 +280,7 @@ if not st.session_state.analysis_completed:
             help="구체적인 직무명이나 부서명을 입력하면 더 정확한 분석이 가능합니다"
         )
 
-    st.markdown("### 📊 개인 데이터 연결")
+    st.markdown("### 📊 개인 데이터 연동")
     col3, col4, col5 = st.columns(3)
 
     with col3:

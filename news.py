@@ -56,4 +56,3 @@ def fetch_news(company, role):
 
 # 테스트용
 # fetch_news('카카오', '프론트엔드 개발자')
-

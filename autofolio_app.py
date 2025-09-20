@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+from news import fetch_news
 from get_readme_list import get_readme_list
 from use_gemini import use_gemini
 

@@ -3,6 +3,7 @@ import time
 from news import fetch_news
 from get_readme_list import get_readme_list
 from use_gemini import use_gemini
+import json
 
 # --- 페이지 설정 ---
 st.set_page_config(
@@ -339,7 +340,7 @@ if not st.session_state.analysis_completed:
                 # 이제 readme_list는 절대 None이 아니므로 에러가 발생하지 않습니다.
                 readme_contents = [str(readme) for readme in readme_list if readme]
 
-                prompt = f"""
+                prompt_for_jagisogaeseo = f"""
                 다음은 여러 GitHub 저장소의 README 파일 내용과 지원하려는 기업에 대한 정보야. 이 내용들을 종합하여 짧은 자기 소개글을 3문단인 글로 출력해줘. 수행한 프로젝트와 기술 스택의 핵심 키워드가 들어갔으면 좋겠어. 강조 효과, 주석 등 없이 순수 텍스트로만 출력해줘.
 
                 README 파일 내용: {' | '.join(readme_contents)}
@@ -348,17 +349,48 @@ if not st.session_state.analysis_completed:
                 핵심 역량: {' | '.join(skills)}
                 기업의 인재상: {' | '.join(company_values)}
                 """
+                st.session_state.profile_summary = use_gemini(prompt_for_jagisogaeseo).strip()
+                time.sleep(5)
 
-                jagisogaeseo = use_gemini(prompt)
+                if readme_contents:
+                    prompt_for_skills = f"""
+                    다음은 여러 Github 저장소의 README 파일 내용과 지원하려는 기업에서 중요하게 여기는 핵심 역량이야.
+                    
+                    README 파일 내용: {' | '.join(readme_contents)}
+                    핵심 역량: {' | '.join(skills)}
 
+                    README 파일의 내용들을 토대로 각 핵심 역량을 얼마나 충족하는지 0~100의 수치로 나타내줘. 강조 효과, 주석 등 없이 순수 텍스트로 출력해주고, 각 항목은 다음과 같은 파이썬 dictionary 양식을 지켜서 출력해줘.
+                    {{
+                        "핵심 역량1": n1,
+                        "핵심 역량2": n2,
+                        "핵심 역량3": n3,
+                        "핵심 역량4": n4,
+                        "핵심 역량5": n5
+                    }}
+                    """
+                    st.session_state.skills_percentages = json.loads(use_gemini(prompt_for_skills))
+                    time.sleep(5)
+
+                    prompt_for_portfolio_names = f"""
+                    다음은 여러 Github 저장소의 README 파일 내용이야.
+                    
+                    README 파일 내용: {' | '.join(readme_contents)}
+
+                    README 파일의 내용들을 토대로 각 프로젝트의 내용을 요약해서 제목을 붙여줘. 강조 효과, 주석 등 없이 순수 텍스트로 출력해주고, 각 항목은 다음과 같은 파이썬 list 양식을 지켜서 출력해줘.
+                    ["프로젝트1", "프로젝트2", "프로젝트3", ...]
+                    """
+                    portfolio_names = json.loads(use_gemini(prompt_for_portfolio_names))
+                    st.session_state.portfolio_items = [{"title": name, "status": "완료", "relevance": "높음"} for name in portfolio_names]
+                else:
+                    st.session_state.skills_percentages = {skill: 0 for skill in skills}
+                    st.session_state.portfolio_items = [{"title": "추가된 프로젝트가 없습니다!", "status": "완료", "relevance": "높음"} for _ in range(3)]
+                
                 st.session_state.analysis_data = {
                     'company_trends': trend,
                     'key_skills': skills,
                     'company_values': company_values,
                     'recent_projects': ['AI 모델 최적화', 'MLOps 구축', '개인화 추천 시스템']
                 }
-
-                st.session_state.profile_summary = jagisogaeseo.strip()
 
                 st.session_state.analysis_completed = True
                 st.rerun()
@@ -471,15 +503,8 @@ if st.session_state.analysis_completed:
         """, unsafe_allow_html=True)
 
         # 스킬 매칭 결과
-        skills_data = {
-            'Python/PyTorch': 85,
-            'Machine Learning': 78,
-            '대규모 데이터 처리': 72,
-            '클라우드 인프라': 65,
-            '팀워크 & 협업': 90
-        }
 
-        for skill, score in skills_data.items():
+        for skill, score in st.session_state.skills_percentages.items():
             color = "🟢" if score >= 80 else "🟡" if score >= 70 else "🟠"
             st.write(f"{color} **{skill}**")
             st.progress(score/100, text=f"{score}% 매칭")
@@ -509,14 +534,7 @@ if st.session_state.analysis_completed:
         """, unsafe_allow_html=True)
 
         # 포트폴리오 항목들
-        portfolio_items = [
-            {"title": "AI 모델 최적화 프로젝트", "status": "완료", "relevance": "높음"},
-            {"title": "데이터 파이프라인 구축", "status": "완료", "relevance": "높음"},
-            {"title": "GitHub 오픈소스 기여", "status": "업데이트 필요", "relevance": "보통"},
-            {"title": "기술 블로그 포스팅", "status": "진행중", "relevance": "보통"}
-        ]
-
-        for item in portfolio_items:
+        for item in st.session_state.portfolio_items:
             status_color = "success" if item["status"] == "완료" else "warning"
             relevance_color = "primary" if item["relevance"] == "높음" else "secondary"
 
@@ -565,4 +583,3 @@ st.markdown("""
     <p style="font-size: 0.875rem;">개인의 경험을 기업의 미래와 연결합니다</p>
 </div>
 """, unsafe_allow_html=True)
-

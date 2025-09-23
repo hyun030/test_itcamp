@@ -353,37 +353,44 @@ if not st.session_state.analysis_completed:
                 time.sleep(5)
 
                 if readme_contents:
-                    prompt_for_skills = f"""
+                    prompt_for_PR = f"""
                     다음은 여러 Github 저장소의 README 파일 내용과 지원하려는 기업에서 중요하게 여기는 핵심 역량이야.
                     
                     README 파일 내용: {' | '.join(readme_contents)}
                     핵심 역량: {' | '.join(skills)}
 
-                    README 파일의 내용들을 토대로 각 핵심 역량을 얼마나 충족하는지 0~100의 수치로 나타내줘. 강조 효과, 주석 등 없이 순수 텍스트로 출력해주고, 각 항목은 다음과 같은 파이썬 dictionary 양식을 지켜서 출력해줘.
+                    위 내용들을 토대로 다음을 출력해줘.
+                    skills_match_percentage: Github 저장소의 주인이 각 핵심 역량을 얼마나 충족하는지 5 단위로 0~100의 수치로 나타내기.
+                    projects_relevance: 각 저장소마다 핵심 역량들을 얼마나 충족하는지 높음, 중간, 낮음의 지표로 표시하기.
+                    improvement_suggestions: 부족한 역량을 채우기 위해 어떤 프로젝트를 추가하면 좋을지 간단히 설명하기.
+                    
+                    강조 효과, 주석 등 없이 순수 텍스트로 출력해주고, 각 항목은 다음과 같은 파이썬 dictionary 양식을 지켜서 출력해줘.
                     {{
-                        "핵심 역량1": n1,
-                        "핵심 역량2": n2,
-                        "핵심 역량3": n3,
-                        "핵심 역량4": n4,
-                        "핵심 역량5": n5
+                        "skills_percentage": {{
+                            "핵심 역량1": n1,
+                            "핵심 역량2": n2,
+                            "핵심 역량3": n3,
+                            "핵심 역량4": n4,
+                            "핵심 역량5": n5
+                        }},
+                        "projects_relevance": [
+                            {{"title": "프로젝트1", "relevance": "높음"}},
+                            {{"title": "프로젝트2", "relevance": "중간"}},
+                            {{"title": "프로젝트3", "relevance": "낮음"}},
+                            ...
+                        ],
+                        "improvement_suggestions": "강화하면 좋은 역량과 추가하면 좋은 프로젝트에 대한 간단한 설명(한줄로)"
                     }}
                     """
-                    st.session_state.skills_percentages = json.loads(use_gemini(prompt_for_skills))
-                    time.sleep(5)
 
-                    prompt_for_portfolio_names = f"""
-                    다음은 여러 Github 저장소의 README 파일 내용이야.
-                    
-                    README 파일 내용: {' | '.join(readme_contents)}
-
-                    README 파일의 내용들을 토대로 각 프로젝트의 내용을 요약해서 제목을 붙여줘. 강조 효과, 주석 등 없이 순수 텍스트로 출력해주고, 각 항목은 다음과 같은 파이썬 list 양식을 지켜서 출력해줘.
-                    ["프로젝트1", "프로젝트2", "프로젝트3", ...]
-                    """
-                    portfolio_names = json.loads(use_gemini(prompt_for_portfolio_names))
-                    st.session_state.portfolio_items = [{"title": name, "status": "완료", "relevance": "높음"} for name in portfolio_names]
+                    Percentages_And_Relevance = json.loads(use_gemini(prompt_for_PR))
+                    st.session_state.skills_percentages = Percentages_And_Relevance['skills_percentage']
+                    st.session_state.portfolio_items = Percentages_And_Relevance['projects_relevance']
+                    st.session_state.improvement_suggestions = Percentages_And_Relevance['improvement_suggestions']
                 else:
                     st.session_state.skills_percentages = {skill: 0 for skill in skills}
-                    st.session_state.portfolio_items = [{"title": "추가된 프로젝트가 없습니다!", "status": "완료", "relevance": "높음"} for _ in range(3)]
+                    st.session_state.portfolio_items = [{"title": "추가된 프로젝트가 없습니다!", "relevance": "높음"} for _ in range(3)]
+                    st.session_state.improvement_suggestions = "GitHub 저장소 정보가 없어 스킬 매칭 분석을 제공할 수 없습니다."
                 
                 st.session_state.analysis_data = {
                     'company_trends': trend,
@@ -512,13 +519,13 @@ if st.session_state.analysis_completed:
         st.markdown("<br>", unsafe_allow_html=True)
 
         # 추천 개선 사항
-        st.markdown("""
+        st.markdown(f"""
         <div class="analysis-card">
             <div class="card-header">
                 <h3 class="card-title">💡 개선 추천사항</h3>
             </div>
             <div style="padding: 1rem; background: #fef3c7; border-radius: 0.5rem; border-left: 4px solid #f59e0b;">
-                <strong>클라우드 인프라</strong> 역량 강화가 필요합니다. AWS나 GCP 관련 프로젝트를 추가하면 더욱 경쟁력 있는 포트폴리오가 될 것입니다.
+                {st.session_state.improvement_suggestions}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -535,16 +542,14 @@ if st.session_state.analysis_completed:
 
         # 포트폴리오 항목들
         for item in st.session_state.portfolio_items:
-            status_color = "success" if item["status"] == "완료" else "warning"
             relevance_color = "primary" if item["relevance"] == "높음" else "secondary"
-
+            
             st.markdown(f"""
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f9fafb; border-radius: 0.5rem; margin-bottom: 0.5rem;">
                 <div>
                     <strong>{item["title"]}</strong>
                 </div>
                 <div>
-                    <span class="badge badge-{status_color}">{item["status"]}</span>
                     <span class="badge badge-{relevance_color}">관련성 {item["relevance"]}</span>
                 </div>
             </div>
